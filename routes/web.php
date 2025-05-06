@@ -24,7 +24,7 @@ Route::get('/', function () {
 
 Route::get('/login', function () {
     return view('auth.login', ['isAdmin' => true]);
-})->name('admin.login');
+})->name('login');
 
 // Member routes
 Route::middleware(['auth'])->group(function () {
