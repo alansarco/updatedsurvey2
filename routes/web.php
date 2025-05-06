@@ -22,7 +22,7 @@ Route::get('/', function () {
     return view('auth.login');
 })->name('home');
 
-Route::get('/admin/login', function () {
+Route::get('/login', function () {
     return view('auth.login', ['isAdmin' => true]);
 })->name('admin.login');
 
