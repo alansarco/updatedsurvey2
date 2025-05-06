@@ -1,0 +1,7 @@
+User::create([
+    'firstname' => 'Admin',
+    'lastname' => 'User',
+    'middlename' => '',
+    'email' => 'admin@gmail.com',
+    'password' => bcrypt('admin123'),
+]);
