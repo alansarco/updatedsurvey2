@@ -6,7 +6,7 @@
         <h1 class="h3">Manage Graduates</h1>
         <!-- Year Filter Dropdown -->
         <div class="d-flex">
-            <a href="{{ route('admin.graduates.notify') }}" class="btn btn-success me-2 text-nowrap">Notify Graduates</a>
+            <a href="{{ route('admin.notifypage') }}" class="btn btn-success me-2 text-nowrap">Notify Graduates</a>
 
             <form method="GET" action="{{ route('admin.graduates') }}" class="d-flex w-100 justify-content-end me-2">
                 <select name="year" class="form-control form-control-sm form-control-select px-3 pe-5" onchange="this.form.submit()" style="width: auto;">

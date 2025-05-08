@@ -44,7 +44,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/graduates', [AdminController::class, 'graduates'])->name('admin.graduates');
-    Route::get('/graduates/notify', [AdminController::class, 'notify'])->name('admin.graduates.notify');
+    Route::post('/graduates/notify', [AdminController::class, 'notify'])->name('admin.graduates.notify');
+    Route::get('/notifypage', [AdminController::class, 'notifypage'])->name('admin.notifypage');
 
     Route::get('/graduates/{graduate}/edit', [AdminController::class, 'edit'])->name('admin.graduates.edit');
     Route::put('/graduates/{graduate}', [AdminController::class, 'update'])->name('admin.graduates.update');

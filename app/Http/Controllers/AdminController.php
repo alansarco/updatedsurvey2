@@ -8,7 +8,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-
+use Maatwebsite\Excel\Facades\Excel;
+use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -167,37 +169,70 @@ class AdminController extends Controller
         if (!auth()->check() || auth()->user()->email !== 'admin@gmail.com') {
             return redirect()->route('login');
         }
+        // Validate the uploaded file
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls',
+        ]);
 
-        $users = User::whereNotIn('id', function ($query) {
-            $query->select('user_id')
-                  ->from('graduates')
-                  ->whereNotNull('user_id');
-        })
-        ->whereNotNull('email')
-        ->where('email', '!=', 'admin@gmail.com')
-        ->get();
+        $path = $request->file('excel_file')->store('uploads');
+        $fullPath = storage_path('app/' . $path);
+        $reader = ReaderEntityFactory::createReaderFromFile(storage_path('app/' . $path));
+        $reader->open(storage_path('app/' . $path));
 
-        foreach ($users as $user) {
-            $name = $user->name;
-            Mail::to($user->email)->send(new NotifyEmail($name));
+        // Load the Excel file
+        DB::beginTransaction(); // Begin a transaction
+        $firstRow = true;
+
+        try {
+            foreach ($reader->getSheetIterator() as $sheet) {
+                $rowNumber = 1;
+                foreach ($sheet->getRowIterator() as $row) {
+                    if ($firstRow) {
+                        $firstRow = false; // Skip the first row (header)
+                        continue;
+                    }
+                    $rowNumber++; // Increment row number for each data row
+
+                    $cells = $row->getCells();
+                                    
+                    if (!empty($cells[0]) && !empty($cells[1])) {
+                        $name = isset($cells[0]) ? $cells[0]->getValue() : null;
+                        $email = isset($cells[1]) ? $cells[1]->getValue() : '';
+
+                        Mail::to($email)->send(new NotifyEmail($name));
+                    }
+                }
+            }
+            
+            DB::commit(); // Commit transaction if all rows pass validation
+            $reader->close();
+
+            sleep(1);
+            
+            // Try deleting with Storage, and if it fails, use unlink
+            try {
+                Storage::delete($path) || unlink($fullPath);
+            } catch (\Exception $e) {
+                return response()->json(['status' => 500, 'message' => 'Failed to delete uploaded file: ' . $e->getMessage()]);
+            }
+
+            return redirect()->route('admin.graduates')->with('success', 'Graduate notified successfully');
+
+        }
+        catch (\Exception $e) {
+            return back()->withErrors(['excel_file' => 'Failed to read Excel file. Error: ' . $e->getMessage()]);
         }
 
-        $query = Graduate::with('user');
+    }
 
-        // Filter by graduation year if selected
-        if ($request->has('year') && $request->year) {
-            $query->where('graduation_year', $request->year);
+    public function notifypage(Request $request)
+    {
+        if (!auth()->check() || auth()->user()->email !== 'admin@gmail.com') {
+            return redirect()->route('login');
         }
 
-        $graduates = $query->latest()->paginate(10);
-
-        // Keep pagination working with the filter
-        if ($request->has('year')) {
-            $graduates->appends(['year' => $request->year]);
-        }
-
-            return redirect()->route('admin.graduates')
-            ->with('success', 'Graduate notified successfully');
+        return view('admin.notifypage')
+        ->with('success', 'Graduate notified successfully');
     }
 
     public function edit(Graduate $graduate)
